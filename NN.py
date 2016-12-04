@@ -54,11 +54,10 @@ class NeuralNet:
 
         return self.outputs[-1]
 
-    def Backpropagate(self, target, learnRate=0.2):
+    def Backpropagate(self, target, learnRate):
         if not hasattr(self, 'inputs') or not hasattr(self, 'outputs'):
             return
         totalSquare = 0.5 * sum((target - self.outputs[-1])**2)
-        print totalSquare
         deltas = np.zeros_like(self.inputs)
 
         iter = np.nditer(self.inputs[-1], flags=["f_index"])
@@ -86,21 +85,35 @@ class NeuralNet:
             iter[0] += learnRate * deltas[layer][node] * self.outputs[layer][node]
 
             iter.iternext()
+        return totalSquare
 
+    def Train(self, trainingSet, runs, initialLearningRate, learningChange, changeFrequency):
+        
+        
+        learningRate = initialLearningRate
+        for i in range(1, runs + 1):
+            totalError = 0.0
+            for training in trainingSet:
+                netInput = training[0]
+                netTarget = training[1]
+                self.FeedForward(netInput)
+                totalError += self.Backpropagate(netTarget, learningRate)
 
+            if i % changeFrequency == 0:
+                learningRate = learningChange(learningRate)
+
+            if i % 1000 == 0:
+                print "run: %6d, learning rate: %.4f, error: %.6f" % (i, learningRate, totalError)
+
+    def PrintResults(self, trainingSet):
+        for training in trainingSet:
+            netInput = training[0]
+            print "%d OP %d = %.2f" % (netInput[0], netInput[1], round(self.FeedForward(netInput), 2))
 
 if __name__ == "__main__":
-    nn = NeuralNet(4, 4)
-    #trainingSet = [(0, 0, 0), (0, 1, 1), (1, 0, 1), (1, 1, 1)]
-    for i in range(10000):
-        nn.FeedForward([1]*4)
-        nn.Backpropagate([0.1234]*4)
-    print map(lambda n: round(n, 2), nn.FeedForward([0.1234]*4))
-    #    for train in trainingSet:
-    #        output = nn.FeedForward(train[:2])
-    #        nn.Backpropagate([train[2], 0], 0.2)
+    nn = NeuralNet(4, 2)
+    trainingSet = [((0, 0), (0, 0)), ((0, 1), (1, 0)), ((1, 0), (1, 0)), ((1, 1), (1, 0))]
 
-    #for train in trainingSet:
-    #    output = nn.FeedForward(train[:2])
-    #    print "%d OR %d = %.4f" % (train[0], train[1], output[0])
-    #print output
+    nn.Train(trainingSet, 10000, 10.0, lambda rate: rate * 0.8, 1000)
+    nn.PrintResults(trainingSet)
+    
