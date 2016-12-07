@@ -99,48 +99,59 @@ class NeuralNet:
         self.inputs[0] = input
         self.outputs[0] = input
 
-        iter = np.nditer(self.connections[1:,:,0], flags=["multi_index"])
-        while not iter.finished:
-            layer = 1 + iter.multi_index[0]
-            node = iter.multi_index[1]
-            self.inputs[layer][node] = self.bias[layer][node] + sum(self.outputs[layer - 1] * self.connections[layer][node])
-            self.outputs[layer][node] = Activation(self.inputs[layer][node])
+        for layer in range(0, self.layers - 1):
+            for unit in range(self.units):
+                if layer > 0:
+                    self.outputs[layer][unit] = Activation(self.bias[layer][unit] + self.inputs[layer][unit])
+                for conn in range(self.units):
+                    self.inputs[layer + 1][conn] += self.outputs[layer][unit] * self.connections[layer][unit][conn]
 
-            iter.iternext()
+        for unit in range(self.units):
+            self.outputs[-1][unit] = Activation(self.inputs[-1][unit])
+
+
+        #iter = np.nditer(self.connections[1:,:,0], flags=["multi_index"])
+        #while not iter.finished:
+        #    layer = 1 + iter.multi_index[0]
+        #    node = iter.multi_index[1]
+        #    self.inputs[layer][node] = self.bias[layer][node] + sum(self.outputs[layer - 1] * self.connections[layer][node])
+        #    self.outputs[layer][node] = Activation(self.inputs[layer][node])
+
+        #    iter.iternext()
 
         return self.outputs[-1]
 
     def Backpropagate(self, target, learnRate):
         if not hasattr(self, 'inputs') or not hasattr(self, 'outputs'):
-            return
-        totalSquare = 0.5 * sum((target - self.outputs[-1])**2)
-        deltas = np.zeros_like(self.inputs)
+            raise Exception("Must Feed forward before backpropagation!")
 
-        iter = np.nditer(self.inputs[-1], flags=["f_index"])
-        while not iter.finished:
-            node = iter.index
-            deltas[-1][node] = ActivationDerivation(iter[0]) * (target[node] - self.outputs[-1][node])
-            iter.iternext()
+        deltas = np.zeros_like(self.outputs)
 
-        iter = np.nditer(self.connections[:-1,:,0], flags=["multi_index"])
-        while not iter.finished:
-            layer = self.layers - iter.multi_index[0] - 2
-            node = iter.multi_index[1]
+        for unit in range(self.units):
+            deltas[-1][unit] = ActivationDerivation(self.inputs[-1][unit]) * (target[unit] - self.outputs[-1][unit])
 
-            deltas[layer][node] = ActivationDerivation(self.inputs[layer][node]) * sum(deltas[layer + 1] * iter[0])
-            self.bias[layer][node] += learnRate * deltas[layer][node] * self.outputs[layer][node]
-            iter.iternext()
+        for layer in range(self.layers - 2, -1, -1):
+            for unit in range(self.units):
+                o = self.outputs[layer][unit]
+                i = self.inputs[layer][unit]
+                prevDeltas = deltas[layer + 1]
+                conn = self.connections[layer][unit]
+                deltas[layer][unit] = ActivationDerivation(i) * sum(prevDeltas * conn)
 
-        iter = np.nditer(self.connections, flags=["multi_index"], op_flags=["readwrite"])
-        while not iter.finished:
-            layer = iter.multi_index[0]
-            node = iter.multi_index[1]
-            conn = iter.multi_index[2]
 
-            iter[0] += learnRate * deltas[layer][node] * self.outputs[layer][node]
+        for layer in range(self.layers - 1):
+            for unit in range(self.units):
+                for conn in range(self.units):
 
-            iter.iternext()
-        return totalSquare
+                    change = learnRate * deltas[layer + 1][conn] * self.outputs[layer][unit]
+                    #if change / self.connections[layer][unit][conn] > 0.1 :
+                    #    print "%d/%d -> %d/%d: %.2f%%" % (layer, unit, layer+1, conn, change * 100)
+                    self.connections[layer][unit][conn] += change
+
+
+        squareError = 0.5 * sum(((target - self.outputs[-1])**2))
+
+        return squareError
 
     def PrepareTrainingSet(self, trainingSet):
 
@@ -166,16 +177,24 @@ class NeuralNet:
                 self.FeedForward(training.input)
                 totalError += self.Backpropagate(training.output, learningRate)
 
+            #self.PrintResults(trainingSet)
+
             if i % changeFrequency == 0:
                 learningRate = learningChange(learningRate)
 
             if i % 1000 == 0:
                 print "run: %6d, learning rate: %.4f, error: %.6f" % (i, learningRate, totalError)
-                self.PrintResults(trainingSet)
+                #self.PrintResults(trainingSet)
 
     def PrintResults(self, trainingSet):
         for training in trainingSet:
-            print "%d %s %d = %.3f" % (training.input[0], training.operation, training.input[1], round(self.FeedForward(training.input)[0], 3))
+            print training.operation, ": ",
+            for input in training.input:
+                print "%.2f " % input,
+            print "-> ",
+            for output in self.FeedForward(training.input):
+                print "%.2f " % output,
+            print
 
 if __name__ == "__main__":
     trainingSet = []
@@ -184,12 +203,10 @@ if __name__ == "__main__":
     trainingSet.append(TrainingSet(operation="or", input=(1.0, 0.0), output=(1.0,)))
     trainingSet.append(TrainingSet(operation="or", input=(1.0, 1.0), output=(1.0,)))
 
-    nn = NeuralNet(3, 2)
+    nn = NeuralNet(4, 2)
+    nn.Train(trainingSet, 10000, 1.0, lambda r: r * 1.0, 1000)
     nn.PrintResults(trainingSet)
-    code = nn.Encode()
 
-    nn2 = NeuralNet(3, 2, code)
-    nn2.PrintResults(trainingSet)
 
     #nn.Train(trainingSet, 100000, 1.0, lambda rate: rate * 0.98, 1000)
     #nn.PrintResults(trainingSet)
