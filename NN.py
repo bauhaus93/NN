@@ -176,36 +176,46 @@ class NeuralNet:
             for training in trainingSet:
                 self.FeedForward(training.input)
                 totalError += self.Backpropagate(training.output, learningRate)
+            self.lastError = totalError / len(trainingSet)
 
-            #self.PrintResults(trainingSet)
 
             if i % changeFrequency == 0:
                 learningRate = learningChange(learningRate)
 
             if i % 1000 == 0:
-                print "run: %6d, learning rate: %.4f, error: %.6f" % (i, learningRate, totalError)
+                pass
+                #print "run: %6d, learning rate: %.4f, error: %.6f" % (i, learningRate, self.lastError)
                 #self.PrintResults(trainingSet)
 
-    def PrintResults(self, trainingSet):
+
+    def GetError(self):
+        if not hasattr(self, 'lastError'):
+            raise Exception("Must backpropagate before error can be given")
+        return self.lastError
+
+    def GetResults(self, trainingSet):
+
+        results = []
         for training in trainingSet:
-            print training.operation, ": ",
+            out = "%-5s: " % training.operation
             for input in training.input:
-                print "%.2f " % input,
-            print "-> ",
+                out += "%.2f " % input
+            out += "-> "
             for output in self.FeedForward(training.input):
-                print "%.2f " % output,
-            print
+                out += "%.2f " % output
+            results.append(out)
+        return results
 
 if __name__ == "__main__":
     trainingSet = []
     trainingSet.append(TrainingSet(operation="or", input=(0.0, 0.0), output=(0.0,)))
     trainingSet.append(TrainingSet(operation="or", input=(0.0, 1.0), output=(1.0,)))
     trainingSet.append(TrainingSet(operation="or", input=(1.0, 0.0), output=(1.0,)))
-    trainingSet.append(TrainingSet(operation="or", input=(1.0, 1.0), output=(1.0,)))
+    trainingSet.append(TrainingSet(operation="or", input=(1.0, 1.0), output=(0.0,)))
 
-    nn = NeuralNet(4, 2)
-    nn.Train(trainingSet, 10000, 1.0, lambda r: r * 1.0, 1000)
-    nn.PrintResults(trainingSet)
+    nn = NeuralNet(6, 2)
+    nn.Train(trainingSet, 1000, 3.0, lambda r: r * 0.98, 1000)
+    print nn.GetResults(trainingSet)
 
 
     #nn.Train(trainingSet, 100000, 1.0, lambda rate: rate * 0.98, 1000)
