@@ -21,8 +21,21 @@ def FixTupleSize(t, size):
     if l > size:
         t = t[:size]
     elif l < size:
-        t = t + (0,) * (size - l)
+        t = t + ((0.0,) * (size - l))
     return t
+
+def PrepareTrainingSet(nn, trainingSet):
+
+    if not all(isinstance(e, TrainingSet) for e in trainingSet):
+        raise Exception("Training set element has invalid type!")
+    units = nn.GetDimensions()[1]
+
+    prepared = []
+    for training in trainingSet:
+        netIn = FixTupleSize(training.input, units)
+        netOut = FixTupleSize(training.output, units)
+        prepared.append(TrainingSet(training.operation, netIn, netOut))
+    return prepared
 
 class NeuralNet:
 
@@ -31,11 +44,9 @@ class NeuralNet:
         self.units = units
 
         if encoding is None:
-            print 'Create Random'
             self.CreateRandomConnections()
             self.CreateRandomBias()
         else:
-            print 'Create by Encoding'
             self.CreateConnections()
             self.CreateBias()
             self.Decode(encoding)
@@ -109,16 +120,6 @@ class NeuralNet:
         for unit in range(self.units):
             self.outputs[-1][unit] = Activation(self.inputs[-1][unit])
 
-
-        #iter = np.nditer(self.connections[1:,:,0], flags=["multi_index"])
-        #while not iter.finished:
-        #    layer = 1 + iter.multi_index[0]
-        #    node = iter.multi_index[1]
-        #    self.inputs[layer][node] = self.bias[layer][node] + sum(self.outputs[layer - 1] * self.connections[layer][node])
-        #    self.outputs[layer][node] = Activation(self.inputs[layer][node])
-
-        #    iter.iternext()
-
         return self.outputs[-1]
 
     def Backpropagate(self, target, learnRate):
@@ -153,40 +154,15 @@ class NeuralNet:
 
         return squareError
 
-    def PrepareTrainingSet(self, trainingSet):
 
-        if not all(isinstance(e, TrainingSet) for e in trainingSet):
-            raise Exception("Training set element has invalid type!")
+    def Train(self, cycles, trainingSet, learningRate):
 
-        prepared = []
-        for training in trainingSet:
-            netIn = FixTupleSize(training.input, self.units)
-            netOut = FixTupleSize(training.output, self.units)
-            prepared.append(TrainingSet(training.operation, netIn, netOut))
-        return prepared
-
-
-    def Train(self, trainingSet, runs, initialLearningRate, learningChange, changeFrequency):
-
-        trainingSet = self.PrepareTrainingSet(trainingSet)
-
-        learningRate = initialLearningRate
-        for i in range(1, runs + 1):
+        for i in range(cycles):
             totalError = 0.0
             for training in trainingSet:
                 self.FeedForward(training.input)
                 totalError += self.Backpropagate(training.output, learningRate)
             self.lastError = totalError / len(trainingSet)
-
-
-            if i % changeFrequency == 0:
-                learningRate = learningChange(learningRate)
-
-            if i % 1000 == 0:
-                pass
-                #print "run: %6d, learning rate: %.4f, error: %.6f" % (i, learningRate, self.lastError)
-                #self.PrintResults(trainingSet)
-
 
     def GetError(self):
         if not hasattr(self, 'lastError'):
@@ -208,10 +184,10 @@ class NeuralNet:
 
 if __name__ == "__main__":
     trainingSet = []
-    trainingSet.append(TrainingSet(operation="or", input=(0.0, 0.0), output=(0.0,)))
-    trainingSet.append(TrainingSet(operation="or", input=(0.0, 1.0), output=(1.0,)))
-    trainingSet.append(TrainingSet(operation="or", input=(1.0, 0.0), output=(1.0,)))
-    trainingSet.append(TrainingSet(operation="or", input=(1.0, 1.0), output=(0.0,)))
+    trainingSet.append(TrainingSet(operation="xor", input=(0.0, 0.0), output=(0.0,)))
+    trainingSet.append(TrainingSet(operation="xor", input=(0.0, 1.0), output=(1.0,)))
+    trainingSet.append(TrainingSet(operation="xor", input=(1.0, 0.0), output=(1.0,)))
+    trainingSet.append(TrainingSet(operation="xor", input=(1.0, 1.0), output=(0.0,)))
 
     nn = NeuralNet(6, 2)
     nn.Train(trainingSet, 1000, 3.0, lambda r: r * 0.98, 1000)
