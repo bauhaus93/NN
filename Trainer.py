@@ -7,7 +7,7 @@ class Trainer:
 
     def __init__(self, nn, trainingSet, initialLearningRate, learningModification, learnModFrequency, inputCount, outputCount):
         self.nn = nn
-        self.trainingSet = NN.PrepareTrainingSet(nn, trainingSet)
+        self.trainingSet = NN.PrepareTrainingSet(nn.GetDimensions()[1], trainingSet)
         self.learningRate = float(initialLearningRate)
         self.learningModification = learningModification
         self.learnModFrequency = learnModFrequency

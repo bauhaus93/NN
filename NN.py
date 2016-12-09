@@ -10,7 +10,10 @@ from math import exp
 TrainingSet = collections.namedtuple('TrainingSet', 'operation input output')
 
 def Activation(value):
-    return 1 / (1 + exp(-value))
+    try:
+        return 1 / (1 + exp(-value))
+    except OverflowError as e:
+        return 9001.0
 
 def ActivationDerivation(value):
     act = Activation(value)
@@ -112,11 +115,13 @@ class NeuralNet:
         for layer in range(0, self.layers - 1):
             for unit in range(self.units):
                 if layer > 0:
-                    self.outputs[layer][unit] = Activation(self.bias[layer][unit] + self.inputs[layer][unit])
+                    self.inputs[layer][unit] += self.bias[layer][unit]
+                    self.outputs[layer][unit] = Activation(self.inputs[layer][unit])
                 for conn in range(self.units):
                     self.inputs[layer + 1][conn] += self.outputs[layer][unit] * self.connections[layer][unit][conn]
 
         for unit in range(self.units):
+            self.inputs[-1][unit] += self.bias[-1][unit]
             self.outputs[-1][unit] = Activation(self.inputs[-1][unit])
 
         return self.outputs[-1]
@@ -136,7 +141,7 @@ class NeuralNet:
                 i = self.inputs[layer][unit]
                 prevDeltas = deltas[layer + 1]
                 conn = self.connections[layer][unit]
-                deltas[layer][unit] = ActivationDerivation(i) * sum(prevDeltas * conn)
+                deltas[layer][unit] = ActivationDerivation(i) * (sum(prevDeltas * conn))
 
 
         for layer in range(self.layers - 1):
@@ -180,18 +185,3 @@ class NeuralNet:
                 out += "%.2f " % output
             results.append(out)
         return results
-
-if __name__ == "__main__":
-    trainingSet = []
-    trainingSet.append(TrainingSet(operation="xor", input=(0.0, 0.0), output=(0.0,)))
-    trainingSet.append(TrainingSet(operation="xor", input=(0.0, 1.0), output=(1.0,)))
-    trainingSet.append(TrainingSet(operation="xor", input=(1.0, 0.0), output=(1.0,)))
-    trainingSet.append(TrainingSet(operation="xor", input=(1.0, 1.0), output=(0.0,)))
-
-    nn = NeuralNet(6, 2)
-    nn.Train(trainingSet, 1000, 3.0, lambda r: r * 0.98, 1000)
-    print nn.GetResults(trainingSet)
-
-
-    #nn.Train(trainingSet, 100000, 1.0, lambda rate: rate * 0.98, 1000)
-    #nn.PrintResults(trainingSet)
