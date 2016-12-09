@@ -1,4 +1,4 @@
-
+#!/bin/python2.7
 
 import pygame
 
@@ -10,8 +10,8 @@ class Simulator:
     def __init__(self, sizeX, sizeY):
         pygame.init()
         self.screen = pygame.display.set_mode((sizeX, sizeY))
-        self.fontStd = pygame.font.Font(pygame.font.match_font("verdana"), 14)
-        self.fontBig = pygame.font.Font(pygame.font.match_font("verdana"), 20)
+        self.fontStd = pygame.font.Font(pygame.font.match_font("verdana,dejavusans"), 14)
+        self.fontBig = pygame.font.Font(pygame.font.match_font("verdana,dejavusans"), 20)
         self.screenW = pygame.display.Info().current_w
         self.screenH = pygame.display.Info().current_h
 

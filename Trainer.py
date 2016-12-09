@@ -1,3 +1,4 @@
+#!/bin/python2.7
 
 import NN
 
