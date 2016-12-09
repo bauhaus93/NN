@@ -24,11 +24,10 @@ def FixTupleSize(t, size):
         t = t + ((0.0,) * (size - l))
     return t
 
-def PrepareTrainingSet(nn, trainingSet):
+def PrepareTrainingSet(units, trainingSet):
 
     if not all(isinstance(e, TrainingSet) for e in trainingSet):
         raise Exception("Training set element has invalid type!")
-    units = nn.GetDimensions()[1]
 
     prepared = []
     for training in trainingSet:
