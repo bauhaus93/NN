@@ -26,18 +26,8 @@ class Trainer:
         if self.cycles % self.learnModFrequency == 0:   #TODO make better
             self.learningRate = self.learningModification(self.learningRate)
 
-    def GetResults(self, inputCount, outputCount):
-        results = []
-        for ts in self.trainingSet:
-            output = self.nn.FeedForward(ts.input)
-            resStr = "%s:" % ts.operation
-            for i in ts.input[:self.inputCount]:
-                resStr += " %.2f" % i
-            resStr += " ->"
-            for o in output[:self.outputCount]:
-                resStr += " %.2f" % o
-            results.append(resStr)
-        return results
+    def GetResults(self):
+        return self.nn.GetResults(self.trainingSet, self.inputCount, self.outputCount)
 
     def GetCycles(self):
         return self.cycles

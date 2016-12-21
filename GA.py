@@ -6,6 +6,12 @@ from bisect import bisect
 
 import NN
 
+def CumSum(it):
+    total = 0
+    for x in it:
+        total += x
+        yield total
+
 class Individual:
 
     def __init__(self, entity, fitnessFunction):
@@ -16,12 +22,6 @@ class Individual:
 
     def __str__(self):
         return "fitness: %3.2e, age: %d, children: %d" % (self.fitnessFunction(self.entity), self.age, self.children)
-
-def CumSum(it):
-    total = 0
-    for x in it:
-        total += x
-        yield total
 
 class Genetic:
 
@@ -62,7 +62,7 @@ class Genetic:
     def GetGenerations(self):
         return self.generations
 
-    #pref: higher number    -> prefer fitter individuals
+    #pref: positive number  -> prefer fitter individuals
     #      negative number  -> prefer unfitter individuals
     #      around zero:     -> all individuals selected more equally
     def Select(self, pref=1.0):
@@ -117,28 +117,24 @@ class Genetic:
         return float(fitnessSum) / len(self.population)
 
     def __str__(self):
-        return "curr population: %2d | fittest: %3.2e | avg age: %4.2f | avg fitness: %3.2e" % (self.populationSize, self.fitnessFunction(self.population[0].entity), self.GetAvgAge(), self.GetAvgFitness())
+        return "generation: %3d | fittest: %3.2e | avg age: %4.2f | avg fitness: %3.2e" % (self.generations, self.fitnessFunction(self.population[0].entity), self.GetAvgAge(), self.GetAvgFitness())
 
+if __name__ == "__main__":
+    trainingSet = NN.PrepareTrainingSet(3,
+                [   NN.TrainingSet(operation="xor", input=(0.0, 0.0), output=(0.0,)),
+                    NN.TrainingSet(operation="xor", input=(0.0, 1.0), output=(1.0,)),
+                    NN.TrainingSet(operation="xor", input=(1.0, 0.0), output=(1.0,)),
+                    NN.TrainingSet(operation="xor", input=(1.0, 1.0), output=(0.0,))])
 
-def Fitness(nn):
-    return nn.GetError()
+    g = Genetic(lambda encoding: NN.NeuralNet(4, 3, encoding),
+                lambda nn: nn.GetError(),
+                lambda nn: nn.Train(100, trainingSet, 1.0),
+                20,
+                0.1,
+                0.1)
 
-def Training(nn, trainingSet, learningRate):
-    nn.Train(100, trainingSet, learningRate)
-
-trainingSet = NN.PrepareTrainingSet(3, [ NN.TrainingSet(operation="xor", input=(0.0, 0.0), output=(0.0,)),
-                NN.TrainingSet(operation="xor", input=(0.0, 1.0), output=(1.0,)),
-                NN.TrainingSet(operation="xor", input=(1.0, 0.0), output=(1.0,)),
-                NN.TrainingSet(operation="xor", input=(1.0, 1.0), output=(0.0,))])
-
-g = Genetic(lambda encoding: NN.NeuralNet(4, 3, encoding),
-            lambda nn: Fitness(nn),
-            lambda nn: Training(nn, trainingSet, 1.0),
-            20,
-            0.1,
-            0.1)
-
-for i in range(10):
-    g.NextGeneration()
-    print g
-print g.GetFittest().GetResults(trainingSet)
+    for i in range(10):
+        g.NextGeneration()
+        print g
+    for res in g.GetFittest().GetResults(trainingSet, 2, 1):
+        print res

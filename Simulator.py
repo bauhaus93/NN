@@ -74,7 +74,9 @@ class Simulator:
 
                 text = self.fontStd.render(str(bias), False, color)
                 surf.blit(text, (posX+radius, posY-2*radius))
+
                 posY += offY
+
             posY = padding + radius
             posX += offX
         return surf
@@ -117,14 +119,12 @@ class Simulator:
         text = self.fontBig.render(self.trainer.GetSummary(), False, (0xFF, 0xFF, 0xFF), (0, 0, 0))
         surf.blit(text, (0, 0))
 
-        results = self.trainer.GetResults(2, 1)
+        results = self.trainer.GetResults()
         posY = hBig + 5
         for result in results:
             text = self.fontStd.render(result, False, (0xFF, 0xFF, 0xFF), (0, 0, 0))
             surf.blit(text, (0, posY))
             posY += hStd + 5
-
-
 
         return surf
 

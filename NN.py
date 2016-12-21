@@ -7,6 +7,8 @@ import struct
 
 from math import exp
 
+#TODO include bias in backpropagation
+
 TrainingSet = collections.namedtuple('TrainingSet', 'operation input output')
 
 def Activation(value):
@@ -173,15 +175,15 @@ class NeuralNet:
             raise Exception("Must backpropagate before error can be given")
         return self.lastError
 
-    def GetResults(self, trainingSet):
-
+    def GetResults(self, trainingSet, inputCount, outputCount):
         results = []
-        for training in trainingSet:
-            out = "%-5s: " % training.operation
-            for input in training.input:
-                out += "%.2f " % input
-            out += "-> "
-            for output in self.FeedForward(training.input):
-                out += "%.2f " % output
-            results.append(out)
+        for ts in trainingSet:
+            output = self.FeedForward(ts.input)
+            resStr = "%s:" % ts.operation
+            for i in ts.input[:inputCount]:
+                resStr += " %.2f" % i
+            resStr += " ->"
+            for o in output[:outputCount]:
+                resStr += " %.2f" % o
+            results.append(resStr)
         return results
