@@ -129,7 +129,7 @@ class Simulator:
         return surf
 
 
-nn = NN.NeuralNet(4, 3)
+nn = NN.NeuralNet(3, 4)
 
 trainingSet = [ NN.TrainingSet(operation="xor", input=(0.0, 0.0), output=(0.0,)),
                 NN.TrainingSet(operation="xor", input=(0.0, 1.0), output=(1.0,)),
