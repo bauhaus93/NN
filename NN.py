@@ -42,6 +42,10 @@ def PrepareTrainingSet(units, trainingSet):
 class NeuralNet:
 
     def __init__(self, layers, units, encoding=None):
+        if layers < 1:
+            raise Exception("NN must have at least 1 layer!")
+        if units < 1:
+            raise Exception("NN must have at least 1 unit per layer!")
         self.layers = layers
         self.units = units
 
