@@ -5,71 +5,7 @@ import random
 
 from math import sin, cos
 
-import NN
-
-
-class Bot:
-
-    def __init__(self, nn = None, layers = 0, units = 0, color = (0xFF, 0xFF, 0xFF), size = 3):
-        if nn is None:
-            self.nn = NN.NeuralNet(layers, units)
-        else:
-            self.nn = nn
-
-        self.color = color
-        self.size = size
-
-        self.viewAngle = 0.0
-        self.x = 0.0
-        self.y = 0.0
-
-    def SetPos(self, (x, y)):
-        self.x = x
-        self.y = y
-
-    def SetViewAngle(self, angle):
-        self.viewAngle = angle
-
-    def Rotate(self, angle):
-        self.viewAngle += angle
-        if self.viewAngle > 360:
-            self.viewAngle -= 360
-
-    def GetPos(self):
-        return (int(self.x), int(self.y))
-
-    def GetViewAngle(self):
-        return self.viewAngle
-
-    def GetColor(self):
-        return self.color
-
-    def GetSize(self):
-        return self.size
-
-    def Move(self, units):
-        relX = units * sin(self.viewAngle)
-        relY = units * cos(self.viewAngle)
-        self.x += relX
-        self.y += relY
-
-    def Process(self, environment):
-        actions = self.nn.FeedForward(environment)
-
-        if actions[0] > 0.75 and actions[0] > actions[1]:
-            self.Rotate(0.05)
-        elif actions[1] > 0.75 and actions[1] > actions[0]:
-            self.Rotate(-0.05)
-
-        self.Move(1.0)
-
-        return actions
-
-    def GiveFeedback(self, feedback):
-        self.nn.Backpropagate(feedback, 1.0)
-
-
-
+import Bot
 
 class Playground:
 
@@ -82,10 +18,11 @@ class Playground:
         self.screenH = pygame.display.Info().current_h
 
         self.bots = []
-        for i in range(10):
-            bot = Bot(layers = 4, units = 2, color = (random.randint(0, 0xFF), random.randint(0, 0xFF), random.randint(0, 0xFF)), size = 10)
+        for i in range(20):
+            bot = Bot.Bot(layers = 4, units = 2, size = 10)
             bot.SetPos((random.random() * self.screenW, random.random() * self.screenH))
-            bot.SetViewAngle(random.randint(0, 360))
+            bot.RandomizeAngle()
+            bot.RandomizeColor()
             self.bots.append(bot)
 
     def Loop(self):
