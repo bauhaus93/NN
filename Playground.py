@@ -3,9 +3,39 @@
 import pygame
 import random
 
-from math import sin, cos
+from math import sin, cos, sqrt
 
 import Bot
+
+def LineIntersectsCircle(lineStart, lineEnd, circlePos, radius):
+
+    dX = lineStart[0] - lineEnd[0]
+    dY = lineStart[1] - lineEnd[1]
+    fX = circlePos[0] - lineStart[0]
+    fY = circlePos[1] - lineStart[1]
+
+    a = dX**2 + dY**2
+    b = 2 * (dX * fX + dY * fY)
+    c = fX**2 + fY**2 - radius**2
+
+    discr = b**2 - 4*a*c
+
+    if discr < 0:
+        return False
+
+    discr = sqrt(discr)
+
+    t1 = (-b - discr) / (2*a)
+    t2 = (-b + discr) / (2*a)
+
+    if t1 >= 0 and t1 <= 1:
+        return True
+
+    if t2 >= 0 and t2 <= 1:
+        return True
+
+    return False
+
 
 class Playground:
 
@@ -65,14 +95,13 @@ class Playground:
             if b != bot:
                 bX, bY = b.GetPos()
                 s = b.GetSize()
-                if (targetX - bX)**2 + (targetY - bY)**2 < size**2:
-                    print "LELEL"
+                if LineIntersectsCircle((x, y), (targetX, targetY), (bX, bY), s):
                     return (1.0, 0.0)
-
 
         return (0.0, 0.0)
 
     def ProcessBots(self):
+        boundaries = (0, 0, self.screenW, self.screenH)
         for bot in self.bots:
             environment = self.GetEnvironment(bot)
             bot.Process(environment)
@@ -83,10 +112,9 @@ class Playground:
                 feedback = (0.0, 0.0)
             bot.GiveFeedback(feedback)
 
-            pos = bot.GetPos()
-            if pos[0] < 0 or pos[0] > self.screenW or pos[1] < 0 or pos[1] > self.screenH:
-                bot.SetPos((self.screenW / 2, self.screenH / 2))
-                bot.SetViewAngle(random.randint(0, 360))
+            if not bot.InBoundaries(boundaries):
+                bot.RandomizePosition((0, 0, self.screenW, self.screenH))
+                bot.RandomizeAngle()
 
 
 p = Playground(800, 600)
