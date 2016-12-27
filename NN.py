@@ -21,6 +21,9 @@ def ActivationDerivation(value):
     act = Activation(value)
     return act * (1 - act)
 
+def SquareError(current, target):
+    return 0.5 * sum((target - current)**2)
+
 def FixTupleSize(t, size):
     l = len(t)
     if l > size:
@@ -160,8 +163,7 @@ class NeuralNet:
                     self.connections[layer][unit][conn] += change
 
 
-        squareError = 0.5 * sum(((target - self.outputs[-1])**2))
-
+        squareError = SquareError(self.outputs[-1], target)
         return squareError
 
 
@@ -191,3 +193,8 @@ class NeuralNet:
                 resStr += " %.2f" % o
             results.append(resStr)
         return results
+
+    def GetOutput(self):
+        if not hasattr(self, 'outputs'):
+            raise Exception("Must Feed forward before backpropagation!")
+        return self.outputs[-1]

@@ -19,8 +19,10 @@ class Bot:
         self.x = 0.0
         self.y = 0.0
         self.speed = 1 + random.random()
-        self.turningSpeed = 0.05 + random.random() / 5
+        self.turningSpeed = 0.05 + random.random() / 10
 
+        self.lastRotation = 0.0
+        self.rotationRatio = 0.0
 
     def SetPos(self, (x, y)):
         self.x = x
@@ -43,6 +45,8 @@ class Bot:
         self.viewAngle += angle
         if self.viewAngle > 360:
             self.viewAngle -= 360
+        elif self.viewAngle < 0:
+            self.viewAngle += 360
 
     def GetPos(self):
         return (int(self.x), int(self.y))
@@ -55,6 +59,15 @@ class Bot:
 
     def GetSize(self):
         return self.size
+
+    def GetActions(self):
+        return self.nn.GetOutput()
+
+    def GetLastRotation(self):
+        return self.lastRotation
+
+    def GetRotationRatio(self):
+        return self.rotationRatio
 
     def InBoundaries(self, rect):
         return all((self.x >= rect[0], self.y >= rect[1], self.x < rect[2], self.y < rect[3]))
@@ -70,8 +83,17 @@ class Bot:
 
         if actions[0] > 0.75 and actions[0] > actions[1]:
             self.Rotate(self.turningSpeed)
+            if environment[0] == 0.0:
+                self.lastRotation -= 0.8 * random.random()
+                self.rotationRatio += 0.4 * random.random()
         elif actions[1] > 0.75 and actions[1] > actions[0]:
             self.Rotate(-self.turningSpeed)
+            if environment[0] == 0.0:
+                self.lastRotation -= 0.8 * random.random()
+                self.rotationRatio -= 0.4 * random.random()
+        else:
+            if self.lastRotation < 1.0:
+                self.lastRotation += 0.1
 
         self.Move(self.speed)
 
