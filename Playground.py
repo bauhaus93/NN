@@ -4,10 +4,15 @@ import pygame
 import random
 import time
 
-from math import sin, cos, sqrt
+from math import sin, cos, sqrt, pi, degrees, radians
 
 import Bot
 import NN
+
+def GetDistance(pA, pB):
+    distX = pA[0] - pB[0]
+    distY = pA[1] - pB[1]
+    return sqrt(distX**2 + distY**2)
 
 def LineIntersectsCircle(lineStart, lineEnd, circlePos, radius):
 
@@ -50,16 +55,15 @@ class Playground:
         self.screenH = pygame.display.Info().current_h
 
         self.ticks = 0
+        self.boundaries = (0, 0, sizeX, sizeY)
         self.bots = []
         self.resets = []
         self.lastInfoUpdate = 0
 
-
-
         for i in range(20):
             bot = Bot.Bot(layers = 4, units = 2, size = 10)
-            bot.SetPos((random.random() * self.screenW, random.random() * self.screenH))
-            bot.RandomizeAngle()
+            bot.RandomizePosition((0, 0, self.screenW, self.screenH))
+            bot.RandomizeRotation()
             bot.RandomizeColor()
             self.bots.append(bot)
 
@@ -77,6 +81,7 @@ class Playground:
 
     def Draw(self):
         self.screen.fill((0, 0, 0))
+        #pygame.draw.rect(self.screen, (0, 0, 0), (20, 20, self.screenW-40, self.screenH-40), 2)
 
         for bot in self.bots:
             self.DrawBot(bot)
@@ -107,59 +112,71 @@ class Playground:
 
     def DrawBot(self, bot):
         pos = bot.GetPos()
-        view = bot.GetViewAngle()
+        rot = bot.GetRotation()
         size = bot.GetSize()
-        pygame.draw.line(self.screen, (0xFF, 0xFF, 0xFF), pos, (pos[0] +  (size * 4) * sin(view), pos[1] + (size * 4) * cos(view)))
+        viewRadius = bot.GetViewRadius()
+        pygame.draw.line(self.screen, (0xFF, 0xFF, 0xFF), pos, (pos[0] +  viewRadius * cos(rot), pos[1] + viewRadius * sin(rot)))
+        #pygame.draw.circle(self.screen, (0xFF, 0xFF, 0xFF), pos, bot.GetViewRadius(), 1)
         pygame.draw.circle(self.screen, bot.GetColor(), pos, size)
 
 
     def GetEnvironment(self, bot):
-        x, y = bot.GetPos()
-        view = bot.GetViewAngle()
-        size = bot.GetSize()
+        env = self.GetWallData(bot)
+        #if env[0] != 0:
+        #    print env
+        #    pygame.time.wait(200)
+        return env
 
-        targetX = x + (size * 4) * sin(view)
-        targetY = y + (size * 4) * cos(view)
-        if targetX < 5 or targetX > self.screenW - 5 or targetY < 5 or targetY > self.screenH - 5:
-            return (1.0, bot.GetLastRotation())
+    def GetWallData(self, bot):
+        botPos = bot.GetPos()
+        botAngle = bot.GetRotation()
 
-        for b in self.bots:
-            if b != bot:
-                bX, bY = b.GetPos()
-                s = b.GetSize()
-                if LineIntersectsCircle((x, y), (targetX, targetY), (bX, bY), s):
-                    return (1.0, bot.GetLastRotation())
+        #left boundary
+        minDist = GetDistance(botPos, (self.boundaries[0], botPos[1]))
+        angle = pi - botAngle
 
-        return (0.0, bot.GetLastRotation())
+        #top boundary
+        dist = GetDistance(botPos, (botPos[0], self.boundaries[1]))
+        if dist < minDist:
+            minDist = dist
+            angle = 3 * pi / 2 - botAngle
+
+        #right boundary
+        dist = GetDistance(botPos, (self.boundaries[2], botPos[1]))
+        if dist < minDist:
+            minDist = dist
+            angle = 0 - botAngle
+
+        #bottom boundary
+        dist = GetDistance(botPos, (botPos[0], self.boundaries[3]))
+        if dist < minDist:
+            minDist = dist
+            angle = pi / 2 - botAngle
+
+
+        if minDist < bot.GetViewRadius():
+            if abs(angle) < pi / 2:
+                return (minDist, angle)
+            if 2 * pi - abs(angle) < pi / 2:
+                return (minDist, 2 * pi - abs(angle))
+
+        return (0.0, 0.0)
+
 
     def CreateFeedback(self, bot, environment):
         actions = bot.GetActions()
 
-        possibleFeedbacks = []
-        if environment[0] == 1.0:
-            possibleFeedbacks.append((1.0, 0.0))
-            possibleFeedbacks.append((0.0, 1.0))
-        elif environment[1] >= 0.8:
-            rr = bot.GetRotationRatio()
-            if rr >= 0.8:
-                possibleFeedbacks.append((0.0, 1.0))
-            elif rr <= -0.8:
-                possibleFeedbacks.append((1.0, 0.0))
+        if environment[0] == 0.0 and environment[1] == 0.0:
+            feedback = (0.0, 0.0)
+        elif environment[0] > 0.0:
+            if environment[1] > 0.0:
+                feedback = (0.0, 1.0)
             else:
-                possibleFeedbacks.append((0.0, 1.0))
-                possibleFeedbacks.append((1.0, 0.0))
+                feedback = (1.0, 0.0)
         else:
-            possibleFeedbacks.append((0.0, 0.0))
+            feedback = (0.0, 0.0)
 
-        bestFeedback = possibleFeedbacks[0]
-        bestError = NN.SquareError(actions, bestFeedback)
-        for feedback in possibleFeedbacks[1:]:
-            err = NN.SquareError(actions, feedback)
-            if err < bestError:
-                bestFeedback = feedback
-                bestError = err
-
-        bot.GiveFeedback(bestFeedback)
+        bot.GiveFeedback(feedback)
 
     def ProcessBots(self):
         boundaries = (0, 0, self.screenW, self.screenH)
@@ -170,7 +187,7 @@ class Playground:
 
             if not bot.InBoundaries(boundaries):
                 bot.RandomizePosition((0, 0, self.screenW, self.screenH))
-                bot.RandomizeAngle()
+                bot.RandomizeRotation()
                 self.resets.append(time.time())
 
 
