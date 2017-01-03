@@ -4,7 +4,7 @@ import pygame
 import random
 import time
 
-from math import sin, cos, sqrt, pi, degrees, radians
+from math import sin, cos, atan, sqrt, pi, degrees, radians
 
 import Bot
 import NN
@@ -60,7 +60,7 @@ class Playground:
         self.resets = []
         self.lastInfoUpdate = 0
 
-        for i in range(20):
+        for i in range(2):
             bot = Bot.Bot(layers = 4, units = 2, size = 10)
             bot.RandomizePosition((0, 0, self.screenW, self.screenH))
             bot.RandomizeRotation()
@@ -85,6 +85,13 @@ class Playground:
 
         for bot in self.bots:
             self.DrawBot(bot)
+
+        pygame.draw.line(self.screen, (0xFF, 0xFF, 0xFF), self.bots[0].GetPos(), self.bots[1].GetPos())
+        tb1 = self.fontStd.render("bot 1", False, (0xFF, 0xFF, 0xFF), (0x2F, 0x2F, 0x2F))
+        tb2 = self.fontStd.render("bot 2", False, (0xFF, 0xFF, 0xFF), (0x2F, 0x2F, 0x2F))
+
+        self.screen.blit(tb1, self.bots[0].GetPos())
+        self.screen.blit(tb2, self.bots[1].GetPos())
 
         currTime = time.time()
         if currTime - self.lastInfoUpdate >= 1.0 and self.ticks % 100 == 0:
@@ -122,10 +129,50 @@ class Playground:
 
     def GetEnvironment(self, bot):
         env = self.GetWallData(bot)
-        #if env[0] != 0:
-        #    print env
-        #    pygame.time.wait(200)
+        if bot == self.bots[0]:
+            self.GetNearestHostile(bot)
         return env
+
+
+    def GetNearestHostile(self, bot):
+        botPos = bot.GetPos()
+        botAngle = bot.GetRotation()
+
+        minDist = -1
+
+#        -x                  +x
+#    -y  |---------------------
+#        |   o
+#        |       t
+#        |
+#        |
+#    +y  |---------------------
+
+        for b in self.bots:
+            if b == bot:
+                continue
+            otherPos = b.GetPos()
+
+            if minDist == -1:
+                minDist = GetDistance(botPos, otherPos)
+                distX = botPos[0] - otherPos[0]
+                distY = botPos[1] - otherPos[1]
+
+                if distX == 0:
+                    if botPos[1] > otherPos[1]:
+                        angle = 270.0
+                    else:
+                        angle = 90.0
+                elif distY == 0:
+                    if botPos[0] > otherPos[0]:
+                        angle = 180.0
+                    else:
+                        angle = 0.0
+                else:
+                    angle = atan(distY / distX)
+                print "dist: (%d/%d), angle: %.2f deg" % (distX, distY, degrees(angle))
+
+
 
     def GetWallData(self, bot):
         botPos = bot.GetPos()
@@ -191,5 +238,31 @@ class Playground:
                 self.resets.append(time.time())
 
 
-p = Playground(800, 600)
-p.Loop()
+#p = Playground(800, 600)
+#p.Loop()
+
+def Test(botPos, otherPos):
+
+    distX = botPos[0] - otherPos[0]
+    distY = botPos[1] - otherPos[1]
+
+    if distX == 0.0:
+        if botPos[1] > otherPos[1]:
+            angle = 3 * pi / 2
+        else:
+            angle = pi / 2
+    elif distY == 0.0:
+        if botPos[0] > otherPos[0]:
+            angle = pi
+        else:
+            angle = 0.0
+    else:
+        angle = atan(distY / distX)
+    print "dist: (%d/%d), angle: %.2f deg" % (distX, distY, degrees(angle))
+
+a = (5.0, 5.0)
+b = (4.0, 3.0)
+for x in range(0, 10):
+    for y in range(0, 10):
+        print a, "->", (x, y)
+        Test(a, (x, y))
